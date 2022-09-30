@@ -1,4 +1,4 @@
-package  dailyLogger
+package dailyLogger
 
 import (
 	"fmt"
@@ -8,6 +8,81 @@ import (
 	"path/filepath"
 	"time"
 )
+
+type StructLogger struct {
+	logger         *log.Logger
+	writer         io.Writer
+	logsDir        string
+	prefix         string
+	loggerFilePath string
+	loggerFile     *os.File
+}
+
+func (structLogger *StructLogger) getLogger() *log.Logger {
+	return structLogger.logger
+}
+func (structLogger *StructLogger) changeDayFile() {
+	go func() {
+		for {
+			intervalTime := 24*60*60 - time.Now().Hour()*60*60 - time.Now().Minute()*60 - time.Now().Second()
+			<-time.NewTimer(time.Duration(intervalTime) * time.Second).C
+			var err error
+			//loggerFilePath = logsDir + string(os.PathSeparator) + prefix + time.Now().Format("20060102") + ".log"
+			loggerFilePath := filepath.Join(structLogger.logsDir, structLogger.prefix+time.Now().Format("20060102")+".log")
+
+			if structLogger.loggerFilePath != loggerFilePath {
+				structLogger.loggerFilePath = loggerFilePath
+				//fmt.Println(loggerFilePath + "  " + loggerFile.Name())
+				structLogger.loggerFile.Close()
+				structLogger.loggerFile, err = os.OpenFile(structLogger.loggerFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+				if err != nil {
+					fmt.Println(err)
+				}
+				//logger.SetOutput(loggerFile)
+				//logger.SetOutput(io.MultiWriter(os.Stdout, loggerFile))
+				if os.Getenv("debug") != "" {
+					structLogger.logger.SetOutput(io.MultiWriter(os.Stdout, structLogger.loggerFile))
+				} else {
+					structLogger.logger.SetOutput(structLogger.loggerFile)
+					//logger.SetOutput(os.Stdout)
+
+				}
+				//defer  loggerFile.Close()
+			}
+		}
+	}()
+
+}
+
+func (structLogger *StructLogger) init(logsDir, prefix string) *log.Logger {
+	var err error
+	logsDir = filepath.Clean(logsDir)
+	_, err = os.Stat(logsDir)
+	if err != nil {
+		err = os.Mkdir(logsDir, os.ModePerm)
+		if err != nil {
+			panic(err.Error())
+		}
+	}
+	structLogger.prefix = prefix
+	structLogger.logsDir = logsDir
+
+	structLogger.loggerFilePath = filepath.Join(structLogger.logsDir, prefix+time.Now().Format("20060102")+".log")
+	structLogger.loggerFile, err = os.OpenFile(structLogger.loggerFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+	//fmt.Printf("path="+loggerFilePath +" \r\n")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	if os.Getenv("debug") != "" {
+		structLogger.logger = log.New(io.MultiWriter(os.Stdout, structLogger.loggerFile), "", log.LstdFlags)
+	} else {
+		structLogger.logger = log.New(structLogger.loggerFile, "", log.LstdFlags)
+		//logger = log.New(os.Stdout, "", log.LstdFlags)
+	}
+	return structLogger.logger
+
+}
 
 func NewLogger(logsDir, prefix string) *log.Logger {
 	// os.PathSeparator
