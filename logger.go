@@ -18,6 +18,14 @@ type StructLogger struct {
 	loggerFile     *os.File
 }
 
+func NewLogger(logsDir, prefix string) *log.Logger {
+	return new(StructLogger).init(logsDir, prefix)
+
+	//or a := &StructLogger{}
+	//return  a.init("loggs", "test")
+
+}
+
 func (structLogger *StructLogger) getLogger() *log.Logger {
 	return structLogger.logger
 }
@@ -72,6 +80,8 @@ func (structLogger *StructLogger) init(logsDir, prefix string) *log.Logger {
 	//fmt.Printf("path="+loggerFilePath +" \r\n")
 	if err != nil {
 		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
+		//fmt.Fprintf(os.Stderr, "%s", err)
 	}
 
 	if os.Getenv("debug") != "" {
@@ -80,11 +90,12 @@ func (structLogger *StructLogger) init(logsDir, prefix string) *log.Logger {
 		structLogger.logger = log.New(structLogger.loggerFile, "", log.LstdFlags)
 		//logger = log.New(os.Stdout, "", log.LstdFlags)
 	}
+	structLogger.changeDayFile()
 	return structLogger.logger
 
 }
 
-func NewLogger(logsDir, prefix string) *log.Logger {
+func NewLogger_old(logsDir, prefix string) *log.Logger {
 	// os.PathSeparator
 	var err error
 	var logger *log.Logger
@@ -103,6 +114,7 @@ func NewLogger(logsDir, prefix string) *log.Logger {
 	//fmt.Printf("path="+loggerFilePath +" \r\n")
 	if err != nil {
 		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 	}
 	//defer  loggerFile.Close()
 	//logger = log.New(loggerFile, "", log.LstdFlags)
